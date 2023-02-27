@@ -1,43 +1,35 @@
-import { Router } from 'express'
-import model from '../../model/index'
-import { validateCreate, validateUpdate, validateId } from './validation'
-const router = new Router()
+const express = require("express");
 
-router.get('/', async (req, res, next) => {
-  const contacts = await model.listContacts()
-  res.status(200).json(contacts)
-})
+const ctrl = require("../../controllers/contacts");
 
-router.get('/:id', validateId, async (req, res, next) => {
-  const { id } = req.params
-  const contact = await model.getContactById(id)
-  if (contact) {
-    return res.status(200).json(contact)
-  }
-  res.status(404).json({ message: 'Not found' })
-})
+const { authenticate, validateBody, isValidId } = require("../../middlewares");
 
-router.post('/', validateCreate, async (req, res, next) => {
-  const newContact = await model.addContact(req.body)
-  res.status(201).json(newContact)
-})
+const { schemas } = require("../../models/contact");
 
-router.delete('/:id', validateId, async (req, res, next) => {
-  const { id } = req.params
-  const contact = await model.removeContact(id)
-  if (contact) {
-    return res.status(200).json({ message: 'contact deleted' })
-  }
-  res.status(404).json({ message: 'Not found' })
-})
+const router = express.Router();
 
-router.put('/:id', validateId, validateUpdate, async (req, res, next) => {
-  const { id } = req.params
-  const contact = await model.updateContact(id, req.body)
-  if (contact) {
-    return res.status(200).json(contact)
-  }
-  res.status(404).json({ message: 'Not found' })
-})
+router.get("/", authenticate, ctrl.getAll);
 
-export default router
+router.get("/:id", authenticate, isValidId, ctrl.getById);
+
+router.post("/", authenticate, validateBody(schemas.addSchema), ctrl.add);
+
+router.delete("/:id", authenticate, isValidId, ctrl.deleteById);
+
+router.patch(
+  "/:id/favorite",
+  authenticate,
+  isValidId,
+  validateBody(schemas.updateFavoriteSchema),
+  ctrl.updateFavorite
+);
+
+router.put(
+  "/:id",
+  authenticate,
+  isValidId,
+  validateBody(schemas.addSchema),
+  ctrl.updateById
+);
+
+module.exports = router;
